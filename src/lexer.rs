@@ -22,6 +22,7 @@ pub enum Token {
     Minus,
     Multiply,
     Slash,
+    Power,
     LeftPar,          // (
     RightPar,         // )
     Eof,              // EOF
@@ -66,7 +67,7 @@ impl Lexer {
                         decimal_buf = Some((0.0, -1.0));
                         None
                     }
-                    '+' | '-' | '*' | '/' | '(' | ')' | '=' | ' ' => {
+                    '+' | '-' | '*' | '/' | '^' | '(' | ')' | '=' | ' ' => {
                         if let Some(num) = &mut number_buf {
                             if let Some((val, _power)) = &mut decimal_buf {
                                 *num += *val;
@@ -81,6 +82,7 @@ impl Lexer {
                             '-' => Some(Token::Minus),
                             '*' => Some(Token::Multiply),
                             '/' => Some(Token::Slash),
+                            '^' => Some(Token::Power),
                             '(' => Some(Token::LeftPar),
                             ')' => Some(Token::RightPar),
                             ' ' => continue,

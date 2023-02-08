@@ -32,6 +32,7 @@ pub enum Node {
     Subtract(Box<Node>, Box<Node>),
     Multiply(Box<Node>, Box<Node>),
     Divide(Box<Node>, Box<Node>),
+    Power(Box<Node>, Box<Node>),
 }
 
 struct TokenProvider {
@@ -71,7 +72,8 @@ impl Parser {
     fn precedence(token: &Token) -> i32 {
         match *token {
             Token::Plus | Token::Minus => 10,
-            Token:: Multiply | Token::Slash => 20,
+            Token::Multiply | Token::Slash => 20,
+            Token::Power => 30,
             _ => 0
         }
     }
@@ -116,6 +118,7 @@ impl Parser {
             Token::Minus => Ok(Box::new(Node::Subtract(left, self.parse_expression(Self::precedence(&token))?))),
             Token::Multiply => Ok(Box::new(Node::Multiply(left, self.parse_expression(Self::precedence(&token))?))),
             Token::Slash => Ok(Box::new(Node::Divide(left, self.parse_expression(Self::precedence(&token))?))),
+            Token::Power => Ok(Box::new(Node::Power(left, self.parse_expression(Self::precedence(&token))?))),
             _ => Err(ParsingError::ExpectedAnOperator)
         }
     }
@@ -138,6 +141,7 @@ impl Parser {
             Node::Subtract(lhs, rhs) => Self::eval_tree(lhs) - Self::eval_tree(rhs),
             Node::Multiply(lhs, rhs) => Self::eval_tree(lhs) * Self::eval_tree(rhs),
             Node::Divide(lhs, rhs) => Self::eval_tree(lhs) / Self::eval_tree(rhs),
+            Node::Power(lhs, rhs) => Self::eval_tree(lhs).powf(Self::eval_tree(rhs)),
             Node::Value(num) => *num,
             _ => panic!("Tree consists of invalid token")
         }
