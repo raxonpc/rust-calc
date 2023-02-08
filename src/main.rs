@@ -1,17 +1,23 @@
 mod lexer;
 mod parser;
 
+use std::error::Error;
 use lexer::*;
 use parser::*;
+use std::io::{ stdin, Write, stdout };
 
 fn main() {
-    let input = "2 + 2 * 2".to_string();
-    let lexer = Lexer::new(&input);
-    let tokens = lexer.scan().unwrap();
-    let mut parser = Parser::new(tokens);
-    let tree = parser.parse().unwrap();
+    let mut buffer = String::new();
 
-    dbg!(tree);
+    loop {
+        print!("> ");
+        stdout().flush();
+        buffer.clear();
+        stdin().read_line(&mut buffer);
+
+        let result = Parser::new(Lexer::new(buffer.trim()).scan().unwrap()).parse().unwrap();
+        println!("{}", result);
+    }
 }
 
 #[cfg(test)]

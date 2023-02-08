@@ -1,5 +1,5 @@
 use std::fmt;
-use std::ops::DerefMut;
+use std::ops::{Deref, DerefMut};
 use crate::lexer::{ Token };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -132,7 +132,19 @@ impl Parser {
         Ok(left)
     }
 
-    pub fn parse(&mut self) -> Result<Box<Node>, ParsingError> {
-        self.parse_expression(0)
+    fn eval_tree(head: &Box<Node>) -> f64 {
+        match head.deref() {
+            Node::Add(lhs, rhs) => Self::eval_tree(lhs) + Self::eval_tree(rhs),
+            Node::Subtract(lhs, rhs) => Self::eval_tree(lhs) - Self::eval_tree(rhs),
+            Node::Multiply(lhs, rhs) => Self::eval_tree(lhs) * Self::eval_tree(rhs),
+            Node::Divide(lhs, rhs) => Self::eval_tree(lhs) / Self::eval_tree(rhs),
+            Node::Value(num) => *num,
+            _ => panic!("Tree consists of invalid token")
+        }
+    }
+
+    pub fn parse(&mut self) -> Result<f64, ParsingError> {
+        let head = self.parse_expression(0)?;
+        Ok(Self::eval_tree(&head))
     }
 }

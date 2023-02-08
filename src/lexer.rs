@@ -1,6 +1,7 @@
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum LexingError {
-    InvalidCharacter
+    InvalidCharacter,
+    MismatchedDot
 }
 
 impl std::fmt::Display for LexingError {
@@ -8,7 +9,8 @@ impl std::fmt::Display for LexingError {
         use LexingError::*;
 
         match *self {
-            InvalidCharacter => write!(f, "Invalid character")
+            InvalidCharacter => write!(f, "Invalid character"),
+            MismatchedDot => write!(f, "Mismatched '.' sign")
         }
     }
 }
@@ -39,21 +41,38 @@ impl Lexer {
 
         let mut iter = self.input.chars();
         let mut number_buf: Option<f64> = None;
+        let mut decimal_buf: Option<(f64, f64)> = None;
         'lexer_loop:
         loop {
             let c = iter.next();
             let token: Option<Token> = match c {
                 Some(c) => match c {
                     _ if c.is_numeric() => {
-                        number_buf = match number_buf {
-                            Some(num) => Some(num * 10.0 + c.to_digit(10).unwrap() as f64),
-                            None => Some(c.to_digit(10).unwrap() as f64)
-                        };
+                        if let Some((val, power)) = &mut decimal_buf {
+                            *val += c.to_digit(10).unwrap() as f64 * 10.0_f64.powf(*power);
+                            *power -= 1.0;
+                        } else {
+                            number_buf = match number_buf {
+                                Some(num) => Some(num * 10.0 + c.to_digit(10).unwrap() as f64),
+                                None => Some(c.to_digit(10).unwrap() as f64)
+                            };
+                        }
+                        None
+                    },
+                    '.' => {
+                        if let None = number_buf {
+                            return Err(LexingError::MismatchedDot);
+                        }
+                        decimal_buf = Some((0.0, -1.0));
                         None
                     }
                     '+' | '-' | '*' | '/' | '(' | ')' | '=' | ' ' => {
-                        if let Some(num) = number_buf {
-                            output.push(Token::Value(num));
+                        if let Some(num) = &mut number_buf {
+                            if let Some((val, _power)) = &mut decimal_buf {
+                                *num += *val;
+                                decimal_buf = None;
+                            }
+                            output.push(Token::Value(*num));
                             number_buf = None;
                         }
 
@@ -73,10 +92,15 @@ impl Lexer {
                     }
                 }
                 None => {
-                    if let Some(num) = number_buf {
-                        output.push(Token::Value(num));
+                    if let Some(num) = &mut number_buf {
+                        if let Some((val, _power)) = &mut decimal_buf {
+                            *num += *val;
+                            decimal_buf = None;
+                        }
+                        output.push(Token::Value(*num));
                         number_buf = None;
                     }
+
                     output.push(Token::Eof);
                     break 'lexer_loop;
                 }
